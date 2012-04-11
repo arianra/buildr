@@ -3,6 +3,7 @@
   var Buildr = exports.Buildr = function(){
     this.stack = [];
     this.elements = [];
+    this.tags = Buildr.prototype.tags.concat();
   };
 
   var isObject = function( obj ) {
@@ -30,7 +31,7 @@
     };
   });
 
-	var touched = true;
+  var touched = true;
   var untouch = function(){ //don't touch my core jQuery methods!
     $.each(overwrite, function(idx, method){
       $.fn[method] = original[method];
@@ -44,91 +45,62 @@
       return arg instanceof Buildr ? arg.root() : arg;
     });
   };
-
-  var TagList = function(){
-    var args = $.makeArray(arguments);
-    this.list = []
-    this.define.apply(this, args);
+  
+  var toNodes = function(arr){
+    var flattened = $.map(arr, function(obj){
+      return obj;
+    });
+    var nodes = $.map(flattened, function(obj){
+      return obj instanceof $ ? obj.get() : obj;
+    });
+    return nodes;
   };
 
-  $.extend(TagList.prototype, {
-    define: function(){
-      var args = $.makeArray(arguments);
-      var options = (isObject(args[0]) ? args.shift() : {})
-      var list = this.list;
-      $.each(args, function(idx, tag){
-        Buildr.prototype[tag] = function(){
-          var args = $.makeArray(arguments);
-          args.unshift(tag);
-          return this.tag.apply(this, args);
-        };
-        list.push(tag);
-      });
-    }
-  });
-
-  var tags = new TagList('a','abbr','acronym','address','article','aside','audio','b','bdi','bdo','big','blockquote','body','button','caption','canvas','command','cite','code','colgroup','datalist','dd','del','details','dfn','div','dl','dt','em','embed','fieldset','figcaption','figure','footer','form','frameset','h1','h2','h3','h4','h5','h6','head','header','hgroup','html','i','iframe','ins','keygen','kbd','label','legend','li','map','mark','meter','nav','noframes','noscript','object','ol','optgroup','option','output','p','pre','progress','q','rp','rt','ruby','samp','section','script','select','small','source','span','strong','style','sub','summary','sup','table','tbody','td','textarea','tfoot','thead','time','title','tr','track','tt','ul','var','video','wbr');
-  var selfClosingTags = new TagList('area','base','br','col','frame','hr','img','input','link','meta','param');
-
-  var element = {
-    id: function(id){
-      return this.attr({id: id});
-    },
-    'class': function(classes){
-      this.removeClass();
-      return this.addClass(classes);
-    },
-    nest: function(fnOrText){
-      var b = this.buildr(), result;
-      b.stack.unshift(this);
-      $.isFunction(fnOrText) ? (result = fnOrText.call(b, b)) : this.text(fnOrText);
-      isString(result) && this.text(result);
-      b.stack.shift();
-      return this;
-    }
+  var to$ = function(arr){
+    var nodes = toNodes(arr);
+    return nodes && nodes.length > 0 ? $(nodes) : null;
   };
-  element.child = element.nest; //alias
 
   var build = function(fn){
     this.elements.splice(0, this.elements.length); //clear elements
-    return fn ? (fn.call(this, this) || this.root()) : this;
+    return fn ? to$(fn.call(this, this) || this.root()) : this;
   };
 
   $.extend(Buildr.prototype, {
     buildr: build,
     build: build,
+    tags: [],
+    defineTag: function(){
+      var args = $.makeArray(arguments), self = this;
+      $.each(args, function(idx, tag){
+        self.tags.push(tag);
+        tag = tag.replace('/','');
+        self[tag] = function(){
+          var args = $.makeArray(arguments);
+          args.unshift(tag);
+          return this.tag.apply(this, args);
+        };
+      });
+      return this;
+    },
+    isSelfClosing: function(tag){
+      return this.tags.indexOf(tag + '/') > -1;
+    },
     tag: function(){
-      var self    = this,
-          args    = $.makeArray(arguments),
-          tag     = args.shift(), selfClosing = selfClosingTags.list.indexOf(tag) > -1,
+      var args    = $.makeArray(arguments),
+          self    = this,
+          tag     = args.shift(),
           getSelf = function(){return self;},
           $el     = this.$ = $.extend($('<'+tag+'>'), {buildr: getSelf, build: getSelf}),
-          $outer  = this.stack[0],
-          fnOrText,
-          items, iterator;
+          $outer  = this.stack[0];
 
       if (touched) $.extend($el, element);
  
-      selfClosing && (delete $el.nest) && (delete $el.child);
-
-      this.elements.push($el);
-
-      //decipher arguments
-      while (args.length > 0 ){
-        var arg = args.shift();
-        if (arg instanceof $ && !selfClosing) { //inner element
-          $el.append(arg);
-				} else if ($.isArray(arg) && $.isFunction(args[0])) {
-					items = arg, iterator = args.shift(), fnOrText = function(){self.each(items, iterator);};
-        } else if ($.isFunction(arg) || isString(arg)) {
-          fnOrText = arg;
-        } else if (isObject(arg)) {
-          $el.attr(arg); //attributes
-        }
-      }
+      this.isSelfClosing(tag) && (delete $el.nest) && (delete $el.contain);
 
       $outer && $outer.append($el);
-      fnOrText && $el.nest && $el.nest(fnOrText);
+      this.elements.push($el);
+      element.nest.apply($el, args);
 
       return $el;
     },
@@ -152,10 +124,72 @@
     }
   });
 
+  //self-closing tags have a trailing slash
+  Buildr.prototype.defineTag(
+    'a','abbr','acronym','address','article','aside','audio','b','bdi','bdo','big','blockquote','body','button','caption','canvas','command','cite','code','colgroup','datalist','dd','del','details','dfn','div','dl','dt','em','embed','fieldset','figcaption','figure','footer','form','frameset','h1','h2','h3','h4','h5','h6','head','header','hgroup','html','i','iframe','ins','keygen','kbd','label','legend','li','map','mark','meter','nav','noframes','noscript','object','ol','optgroup','option','output','p','pre','progress','q','rp','rt','ruby','samp','section','script','select','small','source','span','strong','style','sub','summary','sup','table','tbody','td','textarea','tfoot','thead','time','title','tr','track','tt','ul','var','video','wbr',
+    'area/','base/','br/','col/','frame/','hr/','img/','input/','link/','meta/','param/'
+  );
+
+  var element = {
+    id: function(id){
+      this.attr({id: id});
+      return this;
+    },
+    'class': function(classes){
+      this.removeClass();
+      this.addClass(classes);
+      return this;
+    },
+    nest: function(){ //TODO: rename to append and make an aspect?
+      var $el = this, b = this.buildr(), args = $.makeArray(arguments);
+      var processArg = function(arg){
+        if (arg instanceof $) { //inner element
+          var tag = $el.get(0).tagName.toLowerCase();
+          if (b.isSelfClosing(tag)) throw new NestingProhibitedError(tag);
+          $el.append(arg);
+        } else if ($.isArray(arg) && $.isFunction(args[0])) { //iterators
+          items = arg, iterator = args.shift();
+          element.nest.call($el, function(){
+            b.each(items, iterator);
+          });
+        } else if ($.isFunction(arg)) {
+          var result = arg.call(b, b);
+          result && processArg(result);
+        } else if (isString(arg)) {
+          $el.text(arg);
+        } else if (isObject(arg)) {
+          $el.attr(arg); //attributes
+        } else {
+          throw new UnknownArgumentError(arg);
+        }
+      };
+
+      b.stack.unshift($el);
+      while (args.length > 0) 
+        processArg(args.shift());
+      b.stack.shift();
+
+      return this;
+    }
+  };
+  element.contain = element.nest; //alias
+
+  function UnknownArgumentError(arg) {
+    this.name = "UnknownArgumentError";
+    this.arg = arg;
+  }
+  UnknownArgumentError.prototype = Error.prototype;
+
+  function NestingProhibitedError(tag) {
+    this.name = "NestingProhibitedError";
+    this.tag = tag;
+  }
+  NestingProhibitedError.prototype = Error.prototype;
+
   $.extend(Buildr, {
     untouch: untouch,
-    tags: tags,
-    selfClosingTags: selfClosingTags
+    UnknownArgumentError: UnknownArgumentError,
+    NestingProhibitedError: NestingProhibitedError
   });
 
   $.buildr = function() {
@@ -165,15 +199,19 @@
 
     while(args.length > 0){
       var arg = args.shift();
-      isObject(arg) ? bldr.extend(arg) : built.push(bldr.buildr(arg));
+      if (isObject(arg))
+        bldr.extend(arg)
+      else if (isString(arg))
+        bldr.defineTag(arg);
+      else if ($.isFunction(arg))
+        built.push(bldr.buildr(arg));
     }
 
-    built = $.map(built, function(obj){ //flatten
-      return obj;
-    });
-
-    return built.length > 0 ? built : bldr;
+    return to$(built) || bldr;
   };
+
+  $.buildr.defineTag = Buildr.prototype.defineTag.bind(Buildr.prototype);
+  $.buildr.tags = Buildr.prototype.tags;
 
   $.fn.buildr = function(){
     var args = $.makeArray(arguments);
