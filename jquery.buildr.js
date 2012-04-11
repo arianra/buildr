@@ -118,7 +118,7 @@
         var arg = args.shift();
         if (arg instanceof $ && !selfClosing) { //inner element
           $el.append(arg);
-				} else if ($.isArray(arg) && ($.isFunction(args[0]) || args[0] instanceof $)) {
+				} else if ($.isArray(arg) && $.isFunction(args[0])) {
 					items = arg, iterator = args.shift(), fnOrText = function(){self.each(items, iterator);};
         } else if ($.isFunction(arg) || isString(arg)) {
           fnOrText = arg;
@@ -138,12 +138,6 @@
       });
     },
     each: function(items, iterator){
-			var self = this, $outer = this.stack[0];
-			if (iterator instanceof $) {
-				var source = iterator, iterator = function(idx, text){
-					$outer.append(source.clone(false).text(text));
-				};
-			}
       $.each(items, iterator.bind(this));
       return this;
     },

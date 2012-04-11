@@ -83,17 +83,6 @@
         });
       });
 
-      $body.build(function(b){ 
-        b.h1('The Three Stooges (A-color-13)');
-        b.ol({id: 'stooges'}, stooges, function(idx, stooge){
-					b.li(function(){
-						b.b(stooge.name);
-						b.each(colors, b.p());
-					})
-        });
-      });
-
-
       $body.build(function(b){ with(b) {
         h1('The Three Stooges (Aa1)');
         ol({id: 'stooges'}, stooges, function(idx, stooge){
