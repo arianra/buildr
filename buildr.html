@@ -1,9 +1,9 @@
 <html>
 <head>
   <style>
-    .highlight {background-color: yellow;
+    .highlight {background-color: yellow;}
   </style>
-  <script type="text/javascript" src="jquery.js"></script>
+  <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.7.2/jquery.js"></script>
   <script type="text/javascript" src="jquery.buildr.js"></script>
   <script>
     $(function(){
@@ -12,6 +12,8 @@
         {fname: 'Larry', lname: 'Fine'  , dob: '10/05/1902'},
         {fname: 'Curly', lname: 'Howard', dob: '10/22/1903'}
       ];
+
+			var colors = ['red','white','blue']; 
 
       var name = function(){
         return this.fname + ' ' + this.lname;
@@ -39,6 +41,7 @@
         });
       });
 
+
 /*
 
       $body.build(function(b){ with (b){
@@ -57,6 +60,39 @@
           b.li().text(name.bind(stooge));
         });
       });
+
+
+      $body.build(function(b){ with(b) {
+        h1('The Three Stooges (A-color)');
+        ol({id: 'stooges'}, stooges, function(idx, stooge){
+          li(span(stooge.name()), colors, function(idx, color){
+						span(color).css({'background-color': color});
+					});
+        });
+      }});
+
+      $body.build(function(b){ 
+        b.h1('The Three Stooges (A-color-1)');
+        b.ol({id: 'stooges'}, stooges, function(idx, stooge){
+					b.li(function(){
+						b.b(stooge.name);
+						b.each(colors, function(idx, color){
+							b.span(color).css({border: 'solid 1px ' + color});
+						});
+					})
+        });
+      });
+
+      $body.build(function(b){ 
+        b.h1('The Three Stooges (A-color-13)');
+        b.ol({id: 'stooges'}, stooges, function(idx, stooge){
+					b.li(function(){
+						b.b(stooge.name);
+						b.each(colors, b.p());
+					})
+        });
+      });
+
 
       $body.build(function(b){ with(b) {
         h1('The Three Stooges (Aa1)');

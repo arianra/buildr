@@ -30,10 +30,12 @@
     };
   });
 
+	var touched = true;
   var untouch = function(){ //don't touch my core jQuery methods!
     $.each(overwrite, function(idx, method){
       $.fn[method] = original[method];
     });
+    touched = false;
   };
 
   var extractNodes = function(){
@@ -100,11 +102,13 @@
           args    = $.makeArray(arguments),
           tag     = args.shift(), selfClosing = selfClosingTags.list.indexOf(tag) > -1,
           getSelf = function(){return self;},
-          $el     = this.$ = $.extend($('<'+tag+'>'), element, {buildr: getSelf, build: getSelf}),
+          $el     = this.$ = $.extend($('<'+tag+'>'), {buildr: getSelf, build: getSelf}),
           $outer  = this.stack[0],
           fnOrText,
           items, iterator;
 
+      if (touched) $.extend($el, element);
+ 
       selfClosing && (delete $el.nest) && (delete $el.child);
 
       this.elements.push($el);
@@ -114,8 +118,8 @@
         var arg = args.shift();
         if (arg instanceof $ && !selfClosing) { //inner element
           $el.append(arg);
-        } else if ($.isArray(arg) && $.isFunction(args[0])) {
-          items = arg, iterator = args.shift().bind(self), fnOrText = function(){self.each(items, iterator);};
+				} else if ($.isArray(arg) && ($.isFunction(args[0]) || args[0] instanceof $)) {
+					items = arg, iterator = args.shift(), fnOrText = function(){self.each(items, iterator);};
         } else if ($.isFunction(arg) || isString(arg)) {
           fnOrText = arg;
         } else if (isObject(arg)) {
@@ -134,7 +138,13 @@
       });
     },
     each: function(items, iterator){
-      $.each(items, iterator);
+			var self = this, $outer = this.stack[0];
+			if (iterator instanceof $) {
+				var source = iterator, iterator = function(idx, text){
+					$outer.append(source.clone(false).text(text));
+				};
+			}
+      $.each(items, iterator.bind(this));
       return this;
     },
     extend: function(){
@@ -164,7 +174,7 @@
       isObject(arg) ? bldr.extend(arg) : built.push(bldr.buildr(arg));
     }
 
-    built = $.map(built, function(obj, idx){
+    built = $.map(built, function(obj){ //flatten
       return obj;
     });
 
