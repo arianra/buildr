@@ -1,3 +1,4 @@
 Buildr for jQuery
+When the code is the template.
 
-** License forthcoming **
+When I first met Markaby (Why's amazing creation) I fell in love.  Buildr is a jQuery plugin that provides a Markaby-like syntax for building the dom.
