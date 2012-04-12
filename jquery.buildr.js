@@ -17,9 +17,10 @@
   };
 
   var isString = function(obj) {
-    return toString.call(obj) == '[object String]';
+    return toString.call(obj) === '[object String]';
   };
 
+  //allow jQuery append/prepend methods to accept a Buildr object.
   var original = {};
   var overwrite = ['append', 'prepend'];
   $.each(overwrite, function(idx, method){
@@ -96,8 +97,6 @@
 
       if (touched) $.extend($el, element);
  
-      this.isSelfClosing(tag) && (delete $el.nest) && (delete $el.contain);
-
       $outer && $outer.append($el);
       this.elements.push($el);
       element.nest.apply($el, args);
@@ -140,45 +139,42 @@
       this.addClass(classes);
       return this;
     },
-    nest: function(){ //TODO: rename to append and make an aspect?
-      var $el = this, b = this.buildr(), args = $.makeArray(arguments);
+    nest: function(){
+      var $el  = this, 
+          bldr = this.buildr(), 
+          args = $.makeArray(arguments), 
+          tag  = $el.get(0).tagName.toLowerCase(), 
+          selfClosing = bldr.isSelfClosing(tag);
+
       var processArg = function(arg){
-        if (arg instanceof $) { //inner element
-          var tag = $el.get(0).tagName.toLowerCase();
-          if (b.isSelfClosing(tag)) throw new NestingProhibitedError(tag);
+        if (isObject(arg)) {
+          $el.attr(arg); //attributes
+        } else if (selfClosing) {
+          throw new NestingProhibitedError(tag);
+        } else if (arg instanceof $) { //inner element
           $el.append(arg);
         } else if ($.isArray(arg) && $.isFunction(args[0])) { //iterators
           items = arg, iterator = args.shift();
           element.nest.call($el, function(){
-            b.each(items, iterator);
+            bldr.each(items, iterator);
           });
         } else if ($.isFunction(arg)) {
-          var result = arg.call(b, b);
+          var result = arg.call(bldr, bldr);
           result && processArg(result);
-        } else if (isString(arg)) {
-          $el.text(arg);
-        } else if (isObject(arg)) {
-          $el.attr(arg); //attributes
         } else {
-          throw new UnknownArgumentError(arg);
+          $el.text(arg.toString());
         }
       };
 
-      b.stack.unshift($el);
+      bldr.stack.unshift($el);
       while (args.length > 0) 
         processArg(args.shift());
-      b.stack.shift();
+      bldr.stack.shift();
 
       return this;
     }
   };
   element.contain = element.nest; //alias
-
-  function UnknownArgumentError(arg) {
-    this.name = "UnknownArgumentError";
-    this.arg = arg;
-  }
-  UnknownArgumentError.prototype = Error.prototype;
 
   function NestingProhibitedError(tag) {
     this.name = "NestingProhibitedError";
@@ -188,7 +184,6 @@
 
   $.extend(Buildr, {
     untouch: untouch,
-    UnknownArgumentError: UnknownArgumentError,
     NestingProhibitedError: NestingProhibitedError
   });
 
@@ -199,12 +194,12 @@
 
     while(args.length > 0){
       var arg = args.shift();
-      if (isObject(arg))
-        bldr.extend(arg)
+      if ($.isFunction(arg))
+        built.push(bldr.buildr(arg));
+      else if (isObject(arg))
+        bldr.extend(arg);
       else if (isString(arg))
         bldr.defineTag(arg);
-      else if ($.isFunction(arg))
-        built.push(bldr.buildr(arg));
     }
 
     return to$(built) || bldr;

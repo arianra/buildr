@@ -11,14 +11,14 @@ describe("Buildr", function() {
   }
   
   var stooges = [
-    new Person('Moe'  , 'Howard', {dob: '06/19/1897'}),
-    new Person('Larry', 'Fine'  , {dob: '10/05/1902'}),
-    new Person('Curly', 'Howard', {dob: '10/22/1903'})
+    new Person('Moe'    , 'Howard'  , {dob: new Date('1897-06-19')}),
+    new Person('Larry'  , 'Fine'    , {dob: new Date('1902-10-05')}),
+    new Person('Curly'  , 'Howard'  , {dob: new Date('1903-10-22')})
   ];
 
   var duo = [
-    new Person('William', 'Abbott'  , {dob: '10/02/1895'}),
-    new Person('Lou'    , 'Costello', {dob: '03/06/1906'})
+    new Person('William', 'Abbott'  , {dob: new Date('1895-10-02')}),
+    new Person('Lou'    , 'Costello', {dob: new Date('1906-03-06')})
   ];
 
   var highlight = function(){
@@ -50,7 +50,7 @@ describe("Buildr", function() {
         b.ol({id: 'stooges', class: 'comedians'}, function(){
           $.each(stooges, function(idx, stooge){
             b.li(stooge.name());
-          })
+          });
         });
       });
       expect($div.html()).toEqual($stooges.html());
@@ -109,6 +109,32 @@ describe("Buildr", function() {
       expect($div.html()).toEqual($stooges.html());
     });
 
+    it("tags may not be nested within self-closing tags", function() {
+      var errors = [];
+      try {
+        $div.build(function(b){
+          b.img(b.div('Alcatraz'));
+        });
+      } catch (err) {
+        errors.push(err);
+      } 
+      try {
+        $div.build(function(b){
+          b.br(function(){
+            b.div('Alcatraz');
+          });
+        });
+      } catch (err) {
+        errors.push(err);
+      }
+      expect(errors.length).toEqual(2);
+      $.each(errors, function(idx, error){
+        expect(error instanceof Buildr.NestingProhibitedError).toBeTruthy();
+      });
+      expect(errors[0].tag).toEqual('img');
+      expect(errors[1].tag).toEqual('br');
+    });
+
     it("using that dastardly with statement eliminates the need to prefix everything", function() {
       $div.build(function(b){ with(b) {
         h1('The Three Stooges');
@@ -141,7 +167,7 @@ describe("Buildr", function() {
               b.td(stooge.lname);
               b.td(stooge.dob);
             }).click(highlight);
-          })
+          });
         });
       }).html();
       
@@ -150,7 +176,7 @@ describe("Buildr", function() {
           b.caption(b.b('The Three Stooges'));
           b.each(stooges, function(idx, stooge){  //iterator with no wrapper (i.e. each)
             b.tr(b.td(stooge.fname), b.td(stooge.lname), b.td(stooge.dob)).click(highlight);
-          })
+          });
         });
       }).html();
 
@@ -163,7 +189,7 @@ describe("Buildr", function() {
               b.td(stooge.lname);
               b.td(stooge.dob);
             }).click(highlight);
-          })
+          });
         });
       }).html();
       
@@ -172,7 +198,7 @@ describe("Buildr", function() {
           b.caption(b.b('The Three Stooges'));
           b.tbody(stooges, function(idx, stooge){
             b.tr(b.td(stooge.fname), b.td(stooge.lname), b.td(stooge.dob)).click(highlight);
-          })
+          });
         });
       }).html();
 
@@ -181,7 +207,7 @@ describe("Buildr", function() {
           b.caption(b.b('The Three Stooges'));
           b.tbody().nest(stooges, function(idx, stooge){
             b.tr(b.td(stooge.fname), b.td(stooge.lname), b.td(stooge.dob)).click(highlight);
-          })
+          });
         });
       }).html();
 
@@ -190,7 +216,7 @@ describe("Buildr", function() {
           caption(b('The Three Stooges'));
           tbody(stooges, function(idx, stooge){ //iterator with wrapper (i.e. tbody)
             tr(td(stooge.fname), td(stooge.lname), td(stooge.dob)).click(highlight);
-          })
+          });
         });
       }}).html();
 
@@ -199,7 +225,7 @@ describe("Buildr", function() {
           b.caption(b.b('The Three Stooges'));
           b.tbody(stooges, function(idx, stooge){
             b.tr(b.td(stooge.fname), b.td(stooge.lname), b.td(stooge.dob)).click(highlight);
-          })
+          });
         });
       }).html();
 
@@ -208,7 +234,7 @@ describe("Buildr", function() {
           b.caption(b.b('The Three Stooges'));
           b.tbody(stooges, function(idx, stooge){
             b.tr(b.td(stooge.fname), b.td(stooge.lname), b.td(stooge.dob)).click(highlight);
-          })
+          });
         });
       }).html();
 
@@ -218,7 +244,7 @@ describe("Buildr", function() {
             b.caption(b.b('The Three Stooges'));
             b.tbody(stooges, function(idx, stooge){
               b.tr(b.td(stooge.fname), b.td(stooge.lname), b.td(stooge.dob)).click(highlight);
-            })
+            });
           })
         );
       }).html();
@@ -259,7 +285,7 @@ describe("Buildr", function() {
         )
         expect(b.tags).toContain('dob');
       }).html();
-      expect($.buildr.tags).toNotContain('dob');
+      expect($.build.tags).toNotContain('dob');
     });
 
     it("custom tags may be locally defined as a string", function() {
@@ -274,11 +300,11 @@ describe("Buildr", function() {
         )
         expect(b.tags).toContain('dob');
       });
-      expect($.buildr.tags).toNotContain('dob');
+      expect($.build.tags).toNotContain('dob');
     });
 
     it("custom tags may be globally defined", function() {
-      $.buildr.defineTag('dob');
+      $.build.defineTag('dob');
       var html = $.build(function(b){
         b.div(
           b.table({id: 'stooges'}, 
@@ -290,7 +316,7 @@ describe("Buildr", function() {
         )
         expect(b.tags).toContain('dob');
       }).html();
-      expect($.buildr.tags).toContain('dob');
+      expect($.build.tags).toContain('dob');
     });
  
 
@@ -345,8 +371,8 @@ describe("Buildr", function() {
   describe("when calling build", function() {
 
     it("returns a buildr object if no functions are passed", function() {
-      var bldr = $.build();
-      var $tabular = $.build({
+      var bldr     = $.build();
+      var $tabular = $.build({ //pass only a mixin
         comedians: function(caption, comedians){ //renders the collection
           return this.table(function(){
             this.caption(caption);
@@ -361,9 +387,9 @@ describe("Buildr", function() {
       expect($tabular instanceof Buildr).toBeTruthy();
     });
 
-    it("returns a jQuery object if any functions are passed", function() {
-      var $el  = $.build(function(b){
-        b.div(
+    it("returns a jQuery object (containing all root-level elements built in the function) if any functions are passed", function() {
+      var $el  = $.build(function(b){ //this function has no return statement.
+        b.div( //this is the only root-level element (other elements are nested)
           b.table({id: 'stooges'}, 
             b.caption(b.b('The Three Stooges')),
             b.tbody(stooges, function(idx, stooge){
@@ -376,7 +402,20 @@ describe("Buildr", function() {
       expect($el  instanceof $).toBeTruthy();
     });
 
+    it("returns a jQuery object (containing the result of the function) if any functions are passed", function() {
+      var $roses  = $.build(function(b){ //this function has a return statement
+        var roses = b.p('Roses are red');
+        b.p('Violets are blue');
+        return roses;
+      });
+      var $violets  = $.build(function(b){ //this function has a return statement
+        b.p('Roses are red');
+        return b.p('Violets are blue');
+      });
+      expect($roses.html()).toEqual("Roses are red");
+      expect($violets.html()).toEqual("Violets are blue");
+    });
 
-  });	
+  });
   
 });
