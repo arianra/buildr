@@ -46,7 +46,7 @@
       return arg instanceof Buildr ? arg.root() : arg;
     });
   };
-  
+
   var toNodes = function(arr){
     var flattened = $.map(arr, function(obj){
       return obj;
@@ -96,7 +96,7 @@
           $outer  = this.stack[0];
 
       if (touched) $.extend($el, element);
- 
+
       $outer && $outer.append($el);
       this.elements.push($el);
       element.nest.apply($el, args);
@@ -140,10 +140,10 @@
       return this;
     },
     nest: function(){
-      var $el  = this, 
-          bldr = this.buildr(), 
-          args = $.makeArray(arguments), 
-          tag  = $el.get(0).tagName.toLowerCase(), 
+      var $el  = this,
+          bldr = this.buildr(),
+          args = $.makeArray(arguments),
+          tag  = $el.get(0).tagName.toLowerCase(),
           selfClosing = bldr.isSelfClosing(tag);
 
       var processArg = function(arg){
@@ -167,14 +167,14 @@
       };
 
       bldr.stack.unshift($el);
-      while (args.length > 0) 
+      while (args.length > 0)
         processArg(args.shift());
       bldr.stack.shift();
 
       return this;
     }
   };
-  element.contain = element.nest; //alias
+  element.el = element.nest; //alias
 
   function NestingProhibitedError(tag) {
     this.name = "NestingProhibitedError";
