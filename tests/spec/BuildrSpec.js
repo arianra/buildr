@@ -260,6 +260,17 @@ describe("Buildr", function() {
         )
       }).html();
 
+      var html11 = $.build(function(){ //reference 'this' instead of b
+        this.div(
+          this.table({id: 'stooges'}, 
+            this.caption(this.b('The Three Stooges')),
+            this.tbody(stooges, function(idx, stooge){
+              this.tr(this.td(stooge.fname), this.td(stooge.lname), this.td(stooge.dob)).click(highlight);
+            })
+          )
+        )
+      }).html();
+
       expect(html1).toEqual(html2);
       expect(html3).toEqual(html4);
       expect(html3).toContain('<tbody>');
@@ -269,6 +280,7 @@ describe("Buildr", function() {
       expect(html3).toEqual(html8);
       expect(html3).toEqual(html9);
       expect(html3).toEqual(html10);
+      expect(html3).toEqual(html11);
     });
     
     it("custom tags may be locally defined", function() {
