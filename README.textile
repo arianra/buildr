@@ -1,0 +1,5 @@
+h1. Buildr
+
+Buildr brings Markaby to jQuery.
+
+See the "project page":http://mlanza.github.com/buildr/ for details.
